@@ -47,6 +47,7 @@ if __name__=='__main__':
     logging.info(f'i:{i}')
     color = reader.get_color(i)
     depth = reader.get_depth(i)
+    # breakpoint()
     if i==0:
       mask = reader.get_mask(0).astype(bool)
       pose = est.register(K=reader.K, rgb=color, depth=depth, ob_mask=mask, iteration=args.est_refine_iter)

@@ -22,7 +22,6 @@ class FoundationPose:
     self.debug = debug
     self.debug_dir = debug_dir
     os.makedirs(debug_dir, exist_ok=True)
-
     self.reset_object(model_pts, model_normals, symmetry_tfs=symmetry_tfs, mesh=mesh)
     self.make_rotation_grid(min_n_views=40, inplane_step=60)
 
@@ -163,13 +162,18 @@ class FoundationPose:
     set_seed(0)
     logging.info('Welcome')
 
+    # rasterize_start_time = time.time()
     if self.glctx is None:
       if glctx is None:
         self.glctx = dr.RasterizeCudaContext()
         # self.glctx = dr.RasterizeGLContext()
       else:
         self.glctx = glctx
+    # rasterize_end_time = time.time()
+    # rasterize_fps = 1.0 / (rasterize_end_time - rasterize_start_time)
+    # print(f"Rasterize FPS: {rasterize_fps}")
 
+    # process_start_time = time.time()
     depth = erode_depth(depth, radius=2, device='cuda')
     depth = bilateral_filter_depth(depth, radius=2, device='cuda')
 
@@ -212,14 +216,26 @@ class FoundationPose:
     logging.info(f"after viewpoint, add_errs min:{add_errs.min()}")
 
     xyz_map = depth2xyzmap(depth, K)
+      # process_end_time = time.time()
+      # process_fps = 1.0 / (process_end_time - process_start_time)
+      # print(f"Process FPS: {process_fps}")
+
+    # refiner_start_time = time.time()
     poses, vis = self.refiner.predict(mesh=self.mesh, mesh_tensors=self.mesh_tensors, rgb=rgb, depth=depth, K=K, ob_in_cams=poses.data.cpu().numpy(), normal_map=normal_map, xyz_map=xyz_map, glctx=self.glctx, mesh_diameter=self.diameter, iteration=iteration, get_vis=self.debug>=2)
+    # refiner_end_time = time.time()
+    # refiner_fps = 1.0 / (refiner_end_time - refiner_start_time)
+    # print(f"Refiner FPS: {refiner_fps}")
     if vis is not None:
       imageio.imwrite(f'{self.debug_dir}/vis_refiner.png', vis)
 
+    # scorer_start_time = time.time()
     scores, vis = self.scorer.predict(mesh=self.mesh, rgb=rgb, depth=depth, K=K, ob_in_cams=poses.data.cpu().numpy(), normal_map=normal_map, mesh_tensors=self.mesh_tensors, glctx=self.glctx, mesh_diameter=self.diameter, get_vis=self.debug>=2)
+    # scorer_end_time = time.time()
+    # scorer_fps = 1.0 / (scorer_end_time - scorer_start_time)
+    # print(f"Scorer FPS: {scorer_fps}")
     if vis is not None:
       imageio.imwrite(f'{self.debug_dir}/vis_score.png', vis)
-
+    # final_processing_start_time = time.time()
     add_errs = self.compute_add_err_to_gt_pose(poses)
     logging.info(f"final, add_errs min:{add_errs.min()}")
 
@@ -236,7 +252,9 @@ class FoundationPose:
 
     self.poses = poses
     self.scores = scores
-
+    # final_processing_end_time = time.time()
+    # final_processing_fps = 1.0 / (final_processing_end_time - final_processing_start_time)
+    # print(f"Final Processing FPS: {final_processing_fps}")
     return best_pose.data.cpu().numpy()
 
 
@@ -253,15 +271,22 @@ class FoundationPose:
       raise RuntimeError
     logging.info("Welcome")
 
+    # process_start_time = time.time()
     depth = torch.as_tensor(depth, device='cuda', dtype=torch.float)
     depth = erode_depth(depth, radius=2, device='cuda')
     depth = bilateral_filter_depth(depth, radius=2, device='cuda')
+    # process_end_time = time.time()
+    # process_fps = 1.0 / (process_end_time - process_start_time)
+    # print(f"Process FPS: {process_fps}")
     logging.info("depth processing done")
 
     xyz_map = depth2xyzmap_batch(depth[None], torch.as_tensor(K, dtype=torch.float, device='cuda')[None], zfar=np.inf)[0]
-
+    # predict_start_time = time.time()
     pose, vis = self.refiner.predict(mesh=self.mesh, mesh_tensors=self.mesh_tensors, rgb=rgb, depth=depth, K=K, ob_in_cams=self.pose_last.reshape(1,4,4).data.cpu().numpy(), normal_map=None, xyz_map=xyz_map, mesh_diameter=self.diameter, glctx=self.glctx, iteration=iteration, get_vis=self.debug>=2)
-    logging.info("pose done")
+    # predict_end_time = time.time()
+    # predict_fps = 1.0 / (predict_end_time - predict_start_time)
+    # print(f"Predict FPS: {predict_fps}")
+    # logging.info("pose done")
     if self.debug>=2:
       extra['vis'] = vis
     self.pose_last = pose

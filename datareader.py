@@ -111,6 +111,8 @@ class YcbineoatReader:
 
   def get_mask(self,i):
     mask = cv2.imread(self.color_files[i].replace('rgb','masks'),-1)
+    # file = '/juno/u/kedia/FoundationPose/demo_data/mustard0/masks/1581120424100262102.png'
+    # mask = cv2.imread(file,-1)
     if len(mask.shape)==3:
       for c in range(3):
         if mask[...,c].sum()>0:
