@@ -156,3 +156,6 @@ data/
 logs/
 !BundleTrack/XMem/inference/data
 run_used.yml
+
+videos/
+human_videos/

@@ -400,7 +400,7 @@ def main():
                 robot_frame_pose = pose_matrix_to_posestamped(T_RC @ pose, 'robot_frame')
                 offset_x = 0.005
                 offset_z = 0.01
-                offset_y = -0.00
+                offset_y = -0.01
                 robot_frame_pose.pose.position.z += offset_z
                 robot_frame_pose.pose.position.y += offset_y
                 robot_frame_pose.pose.position.x += offset_x
@@ -421,17 +421,26 @@ def main():
                     continue
                 if key in [ord('q'), 27]:
                     print("Quitting...")
+                    hydra.core.global_hydra.GlobalHydra.instance().clear()
                     break
+                if key == ord('d'):
+                    # delete buffer 
+                    print("Deleting buffer...")
+                    image_array = []
+                    print("Buffer deleted...")
                 
                 # Pace to target FPS (UI only)
                 elapsed = time.time() - loop_start
+
                 sleep_time = target_frame_time - elapsed
                 tracking_fps = 1.0 / elapsed
-                print(f"Tracking FPS: {tracking_fps}")
+                print(f"Tracking FPS: {tracking_fps:.0f}")
                 if sleep_time > 0:
                     time.sleep(sleep_time)
                 else:
                     print("Missing target FPS!!!!")
+                    
+                # print(f"pose: {pose}")
     finally:
         zed.close()
         cv2.destroyAllWindows()

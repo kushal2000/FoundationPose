@@ -6,7 +6,7 @@ import argparse
 import time
 import numpy as np
 import datetime
-
+import imageio
 
 def create_directory(directory):
     if os.path.exists(directory):
@@ -153,6 +153,12 @@ if __name__== '__main__':
     print(f"Camera intrinsics saved to {intrinsics_path}")
     print(f"K matrix:\n{K}")
 
+    # warm up the camera for 5 seconds
+    for i in range(5):
+        print(f'Warm up the camera for {i} seconds...')
+        time.sleep(1)
+        rgb_image, depth_image = read_rgbd_frame(zed, runtime_parameters, image_mat, depth_mat, args.width, args.height, args.camera_upsidedown)
+
     frame_count = 0
 
     try:
@@ -161,6 +167,7 @@ if __name__== '__main__':
             print(f'Frame: {frame_count}')
             rgb_image, depth_image = read_rgbd_frame(zed, runtime_parameters, image_mat, depth_mat, args.width, args.height, args.camera_upsidedown)
             rgb_images_array.append(rgb_image)
+            depth_image = (depth_image*1000).astype(np.uint16)
             depth_images_array.append(depth_image)
             frame_count += 1
             # Calculate elapsed time and sleep to match target FPS
@@ -185,9 +192,11 @@ if __name__== '__main__':
             depth_filename = os.path.join(
                 depth_directory, f"frame_{i:04d}.png"
             )
-            cv2.imwrite(rgb_filename, rgb_image)
+            cv2.imwrite(rgb_filename, cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR))
             cv2.imwrite(depth_filename, depth_image)
             print(f'Stored frame {i} to {rgb_filename} and {depth_filename}')
+        # save all rgb frames to a video using imageio
+        imageio.mimsave(os.path.join(save_directory, "rgb.mp4"), rgb_images_array, fps=30)
 
     finally:
         # Release the camera
