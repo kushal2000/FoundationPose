@@ -6,9 +6,4 @@ rm -rf build && mkdir -p build && cd build && \
 cmake .. && \
 make -j$(nproc)
 
-# Install mycuda
-cd ${PROJ_ROOT}/bundlesdf/mycuda && \
-rm -rf build *egg* *.so && \
-python -m pip install -e .
-
 cd ${PROJ_ROOT}
