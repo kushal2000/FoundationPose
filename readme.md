@@ -11,29 +11,77 @@ conda create -n foundationpose python=3.9 -y
 conda activate foundationpose
 ```
 
-### 2. Install Dependencies
+### 2. Install Compiler Toolchain
+
+CUDA 11.8 requires GCC <= 11. Install both the CUDA toolkit and a compatible GCC via conda:
+
+```bash
+# CUDA 11.8 toolkit (must match PyTorch CUDA version)
+conda install -c "nvidia/label/cuda-11.8.0" cuda-toolkit -y
+
+# GCC 11 (required by CUDA 11.8 nvcc)
+conda install -c conda-forge gcc_linux-64=11 gxx_linux-64=11 -y
+```
+
+### 3. Install Python Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**PyTorch3D** must be installed from source (not available on PyPI for all CUDA versions):
+### 4. Install PyTorch3D (from source)
+
+PyTorch3D must be compiled from source. Set `CUDA_HOME`, `CC`, and `CXX` to use the conda-installed toolchain:
+
 ```bash
-pip install "git+https://github.com/facebookresearch/pytorch3d.git"
+export CUDA_HOME=$CONDA_PREFIX
+export CC=$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-gcc
+export CXX=$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++
+pip install --no-build-isolation "git+https://github.com/facebookresearch/pytorch3d.git"
 ```
 
-**ZED SDK** (required for `record_video.py` and `live_tracking_with_ros.py`):
+This takes several minutes to compile CUDA kernels.
+
+### 5. Install nvdiffrast (from source)
+
+```bash
+export CUDA_HOME=$CONDA_PREFIX
+export CC=$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-gcc
+export CXX=$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++
+pip install --no-build-isolation git+https://github.com/NVlabs/nvdiffrast
+```
+
+### 6. Build C++ Extensions
+
+```bash
+bash build_all_conda.sh
+```
+
+This builds `mycpp` (pose clustering used by FoundationPose).
+
+### 7. Download Model Weights
+
+Download the FoundationPose pretrained weights from the [original repo](https://github.com/NVlabs/FoundationPose#model-weights) and place them in `weights/`:
+
+```
+weights/
+  ├── 2023-10-28-18-33-37/   # Scorer model
+  └── 2024-01-11-20-02-45/   # Refiner model
+```
+
+### 8. Optional: ZED SDK
+
+Required for `record_video.py` and `live_tracking_with_ros.py`:
 - Install from [stereolabs.com](https://www.stereolabs.com/developers/release)
 - Then: `pip install pyzed`
 
-**ROS Noetic** (required for `live_tracking_with_ros.py`):
+### 9. Optional: ROS Noetic (via RoboStack)
 
-Install via [RoboStack](https://robostack.github.io/) into the same conda environment:
+Required for `live_tracking_with_ros.py`. Install via [RoboStack](https://robostack.github.io/) into the same conda environment:
 
 ```bash
 conda config --env --add channels robostack-staging
 conda config --env --add channels conda-forge
-# Remove the strict channel priority if set (robostack needs flexible)
 conda config --env --set channel_priority flexible
 
 conda install ros-noetic-desktop
@@ -42,22 +90,11 @@ conda install ros-noetic-geometry-msgs ros-noetic-std-msgs
 
 After installation, ROS is automatically sourced when you activate the conda environment.
 
-### 3. Build C++ Extensions
+### Verify Installation
 
 ```bash
-bash build_all_conda.sh
-```
-
-This builds `mycpp` (pose clustering used by FoundationPose).
-
-### 4. Download Model Weights
-
-Download the FoundationPose pretrained weights from the [original repo](https://github.com/NVlabs/FoundationPose#model-weights) and place them in `weights/`:
-
-```
-weights/
-  ├── 2023-10-28-18-33-37/   # Scorer model
-  └── 2024-01-11-20-02-45/   # Refiner model
+cd /path/to/FoundationPose
+python -c "from Utils import *; from estimater import *; from generate_mask import generate_binary_mask_box; import mycpp; print('All imports OK')"
 ```
 
 ## Scripts
@@ -139,3 +176,10 @@ The `--calibration` argument accepts a 4x4 homogeneous transform `T_RC` (robot-f
 ### Object Meshes
 
 Object meshes should be `.obj` files with units in **meters**. The mesh origin defines the object coordinate frame for the estimated poses.
+
+## Troubleshooting
+
+- **`unsupported GNU version! gcc versions later than 11 are not supported`**: Make sure you installed GCC 11 via conda (step 2) and set `CC`/`CXX` env vars before compiling PyTorch3D/nvdiffrast.
+- **`The detected CUDA version (12.x) mismatches the version that was used to compile PyTorch (11.8)`**: Set `CUDA_HOME=$CONDA_PREFIX` so the build uses the conda-installed CUDA 11.8 toolkit, not the system CUDA.
+- **`ModuleNotFoundError: No module named 'torch'` during PyTorch3D build**: Use `--no-build-isolation` flag with pip.
+- **`Disabling PyTorch because PyTorch >= 2.1 is required`**: This is a cosmetic warning from `transformers`. SAM mask generation still works correctly with PyTorch 2.0.
