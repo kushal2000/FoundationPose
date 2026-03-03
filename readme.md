@@ -26,8 +26,21 @@ pip install "git+https://github.com/facebookresearch/pytorch3d.git"
 - Install from [stereolabs.com](https://www.stereolabs.com/developers/release)
 - Then: `pip install pyzed`
 
-**ROS** (required for `live_tracking_with_ros.py`):
-- Install ROS Noetic in the same conda environment, or source it before running.
+**ROS Noetic** (required for `live_tracking_with_ros.py`):
+
+Install via [RoboStack](https://robostack.github.io/) into the same conda environment:
+
+```bash
+conda config --env --add channels robostack-staging
+conda config --env --add channels conda-forge
+# Remove the strict channel priority if set (robostack needs flexible)
+conda config --env --set channel_priority flexible
+
+conda install ros-noetic-desktop
+conda install ros-noetic-geometry-msgs ros-noetic-std-msgs
+```
+
+After installation, ROS is automatically sourced when you activate the conda environment.
 
 ### 3. Build C++ Extensions
 
