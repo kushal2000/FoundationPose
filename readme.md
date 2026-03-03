@@ -129,10 +129,11 @@ Extract 6D object poses from a recorded RGB-D video and an object mesh.
 python extract_poses.py \
     --video_dir recordings/<timestamp>/ \
     --mesh_path /path/to/object.obj \
+    --calibration calibration/T_RC_example.txt \
     --output_path poses.json
 ```
 
-On the first frame, an interactive window opens where you click 4 corners of a bounding box around the object for SAM-based segmentation. FoundationPose then tracks the object through all frames.
+On the first frame, an interactive window opens where you click 4 corners of a bounding box around the object for SAM-based segmentation. FoundationPose then tracks the object through all frames. To skip interactive selection and use a pre-existing mask, pass `--mask_path <mask.png>`.
 
 **Output format** (`poses.json`):
 ```json
@@ -141,11 +142,14 @@ On the first frame, an interactive window opens where you click 4 corners of a b
     [x, y, z, qx, qy, qz, qw],
     ...
   ],
-  "poses_robot": [...]  // only if --calibration is provided
+  "poses_robot": [
+    [x, y, z, qx, qy, qz, qw],
+    ...
+  ]
 }
 ```
 
-**Options:** `--calibration <T_RC.npy>` (camera-to-robot transform), `--est_refine_iter` (5), `--track_refine_iter` (2), `--debug` (0/1/2)
+**Options:** `--mask_path <mask.png>` (skip interactive SAM), `--est_refine_iter` (5), `--track_refine_iter` (2), `--debug` (0/1/2)
 
 ### Script 3: Live Tracking with ROS
 
@@ -154,7 +158,7 @@ Run real-time 6D pose tracking from a ZED camera and publish poses to ROS topics
 ```bash
 python live_tracking_with_ros.py \
     --mesh_path /path/to/object.obj \
-    --calibration /path/to/T_RC.npy
+    --calibration calibration/T_RC_example.txt
 ```
 
 **Published ROS topics:**
