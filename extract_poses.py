@@ -42,6 +42,8 @@ def main():
                         help='Refinement iterations for initial registration')
     parser.add_argument('--track_refine_iter', type=int, default=2,
                         help='Refinement iterations per tracking step')
+    parser.add_argument('--mask_path', type=str, default=None,
+                        help='Path to initial mask image (skips interactive SAM selection)')
     parser.add_argument('--debug', type=int, default=0,
                         help='Debug level (0=off, 1=show vis, 2=save vis)')
     args = parser.parse_args()
@@ -105,8 +107,14 @@ def main():
             depth = cv2.imread(os.path.join(depth_dir, depth_files[i]), -1) / 1000.0
 
             if i == 0:
-                # Interactive SAM mask selection on first frame
-                mask = select_mask_with_sam(rgb)
+                # Load pre-existing mask or do interactive SAM selection
+                if args.mask_path:
+                    mask = cv2.imread(args.mask_path, -1)
+                    if mask.ndim == 3:
+                        mask = mask[..., 0]
+                    mask = (mask > 0).astype(np.uint8)
+                else:
+                    mask = select_mask_with_sam(rgb)
                 if mask is None or mask.sum() == 0:
                     print("Empty ROI selected. Exiting.")
                     return
