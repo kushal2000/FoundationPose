@@ -173,6 +173,8 @@ Camera intrinsics are automatically read from the ZED SDK for live scripts (`rec
 
 The `--calibration` argument accepts a 4x4 homogeneous transform `T_RC` (robot-from-camera) as a `.npy` or `.txt` file. This transform converts poses from camera frame to robot frame: `pose_robot = T_RC @ pose_cam`.
 
+An example calibration file for our lab setup is provided at `calibration/T_RC_example.txt`. **You must replace this with your own calibration for your camera/robot setup.**
+
 ### Object Meshes
 
 Object meshes should be `.obj` files with units in **meters**. The mesh origin defines the object coordinate frame for the estimated poses.
